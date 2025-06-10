@@ -5,6 +5,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\CustomerController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,10 +22,6 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
-
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -43,11 +40,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Rute CRUD untuk Pesanan
     Route::resource('orders', OrderController::class)->except(['create', 'store']); // Admin tidak membuat pesanan
+
+    // Rute CRUD untuk Pelanggan
+    Route::resource('customers', CustomerController::class)->except(['create', 'store']); // Admin tidak membuat pelanggan
 });
 
-// Route::middleware(['auth', 'role:pelanggan'])->group(function () {
-//     Route::get('/dashboard', [UserController::class, 'index'])->name('dashboard');
-// });
+Route::middleware(['auth', 'role:pelanggan'])->group(function () {
+    Route::get('/dashboard', [UserController::class, 'index'])->name('dashboard');
+});
 
 Route::get('/redirect-after-login', function () {
     $role = auth()->user()->role;
