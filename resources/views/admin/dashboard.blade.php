@@ -27,7 +27,7 @@
                     </svg>
                     Kelola Pelanggan
                 </a>
-                <a href="#" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200">
+                <a href="{{ route('admin.payments.index') }}" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200">
                     <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 8h6m-5 0H7a2 2 0 00-2 2v4a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2m-4 5h4" />
                     </svg>

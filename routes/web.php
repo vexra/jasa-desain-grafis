@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -43,6 +44,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Rute CRUD untuk Pelanggan
     Route::resource('customers', CustomerController::class)->except(['create', 'store']); // Admin tidak membuat pelanggan
+
+    // Rute CRUD untuk Pembayaran
+    Route::resource('payments', PaymentController::class)->except(['create', 'store']); // Admin tidak membuat pembayaran secara manual
 });
 
 Route::middleware(['auth', 'role:pelanggan'])->group(function () {
