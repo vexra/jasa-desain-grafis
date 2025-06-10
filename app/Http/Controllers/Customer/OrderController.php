@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Payment; // Import model Payment
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage; // Import Storage facade
 
 class OrderController extends Controller
 {
@@ -14,10 +16,7 @@ class OrderController extends Controller
      */
     public function index()
     {
-        // Ganti .get() dengan .paginate()
-        // Anda bisa menentukan jumlah item per halaman, misalnya 10
-        $orders = Auth::user()->orders()->latest()->paginate(10); // Ambil pesanan user yang login dengan pagination
-
+        $orders = Auth::user()->orders()->latest()->paginate(10);
         return view('customer.orders.index', compact('orders'));
     }
 
@@ -26,46 +25,76 @@ class OrderController extends Controller
      */
     public function show(Order $order)
     {
-        // Pastikan pesanan ini milik user yang sedang login
         if ($order->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Pastikan relasi items diload
-        // Catatan: Relasi di model Order harus bernama 'items', bukan 'items'
-        $order->load('items.menu'); // <-- Pastikan ini sesuai dengan nama relasi di model Order
-
+        $order->load('items.menu', 'payments'); // Load payments juga
         return view('customer.orders.show', compact('order'));
     }
 
+    // --- Metode BARU untuk pembayaran ---
+
     /**
-     * Mark the specified order as paid and update its status.
-     * This is a simplified payment process.
+     * Show the form for creating a new payment for an order.
      */
-    public function markAsPaid(Order $order)
+    public function createPayment(Order $order)
     {
-        // Pastikan pesanan ini milik user yang sedang login
         if ($order->user_id !== Auth::id()) {
-            return redirect()->back()->with('error', 'Anda tidak berhak melakukan aksi ini.');
+            abort(403, 'Unauthorized action.');
         }
 
-        // Cek jika pesanan sudah dibayar atau tidak dalam status 'pending'
-        if ($order->is_paid || $order->status !== 'pending') {
-            return redirect()->back()->with('error', 'Pesanan ini tidak bisa dibayar atau sudah selesai.');
+        // Cek apakah pesanan sudah completed/cancelled atau sudah memiliki pembayaran pending/completed
+        if ($order->status !== 'pending' || $order->is_paid || $order->payments()->whereIn('status', ['pending', 'completed'])->exists()) {
+            return redirect()->route('customer.orders.show', $order)
+                             ->with('error', 'Pesanan ini tidak memenuhi syarat untuk pembayaran baru.');
         }
 
-        // Update status dan is_paid
-        $order->update([
-            'status' => 'completed', // Atau 'processing' jika ada langkah setelah pembayaran
-            'is_paid' => true,
+        return view('customer.orders.create-payment', compact('order'));
+    }
+
+    /**
+     * Store a newly created payment in storage.
+     */
+    public function storePayment(Request $request, Order $order)
+    {
+        if ($order->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Cek kembali status pesanan sebelum menyimpan pembayaran
+        if ($order->status !== 'pending' || $order->is_paid || $order->payments()->whereIn('status', ['pending', 'completed'])->exists()) {
+            return redirect()->route('customer.orders.show', $order)
+                             ->with('error', 'Tidak dapat memproses pembayaran untuk pesanan ini.');
+        }
+
+        $request->validate([
+            'amount' => 'required|numeric|min:1|max:' . $order->total_amount, // Pastikan jumlah tidak lebih dari total
+            'method' => 'required|string|in:Bank Transfer,E-wallet,Credit Card', // Contoh metode
+            'proof_of_payment' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Bukti transfer (opsional, bisa disesuaikan)
+            'notes' => 'nullable|string|max:500',
         ]);
 
-        // Anda bisa menambahkan logika lain di sini, seperti:
-        // - Membuat entri di tabel `payments` (jika ada)
-        // - Mengirim notifikasi ke admin
-        // - Mengurangi stok barang (jika ada)
+        $proofPath = null;
+        if ($request->hasFile('proof_of_payment')) {
+            $proofPath = $request->file('proof_of_payment')->store('payment_proofs', 'public');
+        }
+
+        Payment::create([
+            'order_id' => $order->id,
+            'user_id' => Auth::id(), // Simpan user_id yang membuat payment
+            'amount' => $request->amount,
+            'method' => $request->method,
+            'proof_of_payment' => $proofPath,
+            'status' => 'pending', // Status awal pembayaran selalu pending
+            'notes' => $request->notes,
+            'transaction_id' => 'PAY-' . time() . '-' . uniqid(), // ID transaksi sederhana
+        ]);
 
         return redirect()->route('customer.orders.show', $order)
-                         ->with('success', 'Pesanan Anda telah berhasil dibayar dan status diperbarui!');
+                         ->with('success', 'Pengajuan pembayaran Anda telah diterima. Mohon tunggu konfirmasi dari admin.');
     }
+
+    // Metode markAsPaid sebelumnya dihapus karena diganti dengan alur approval admin
+    // public function markAsPaid(Order $order) { ... }
 }

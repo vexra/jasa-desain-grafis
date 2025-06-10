@@ -11,9 +11,11 @@ class Payment extends Model
 
     protected $fillable = [
         'order_id',
+        'user_id', // <-- Tambahkan ini
         'transaction_id',
         'amount',
         'method',
+        'proof_of_payment', // <-- Tambahkan ini
         'status',
         'notes',
         'paid_at',
@@ -30,5 +32,13 @@ class Payment extends Model
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * Get the user that made the payment.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

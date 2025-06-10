@@ -5,93 +5,81 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB; // Untuk transaksi database
 
 class PaymentController extends Controller
 {
     /**
-     * Display a listing of the resource (all payments).
+     * Display a listing of the payments.
      */
     public function index()
     {
-        // Ambil semua pembayaran dengan informasi order dan user terkait, paginasi
-        $payments = Payment::with('order.user')->orderByDesc('created_at')->paginate(10);
+        $payments = Payment::with('order.user')->latest()->paginate(10);
         return view('admin.payments.index', compact('payments'));
     }
 
     /**
-     * Show the form for creating a new resource.
-     * (Admin usually doesn't create payments directly).
-     */
-    public function create()
-    {
-        // return view('admin.payments.create'); // Anda bisa menghapus ini jika tidak diperlukan
-        abort(404, 'Admin tidak membuat pembayaran secara langsung.');
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     * (Admin usually doesn't store payments directly, this is handled by customer side/payment gateway).
-     */
-    public function store(Request $request)
-    {
-        // Logic for storing a payment would typically be integrated with payment gateway callbacks
-        abort(404, 'Admin tidak menyimpan pembayaran secara langsung.');
-    }
-
-    /**
-     * Display the specified resource (payment details).
+     * Display the specified payment.
      */
     public function show(Payment $payment)
     {
-        // Load payment with its associated order and user
-        $payment->load('order.user');
+        $payment->load('order.user'); // Load relasi order dan user
         return view('admin.payments.show', compact('payment'));
     }
 
     /**
-     * Show the form for editing the specified resource (primarily for changing status).
+     * Approve the specified payment and update associated order.
      */
-    public function edit(Payment $payment)
+    public function approve(Payment $payment)
     {
-        $payment->load('order.user'); // Load data yang diperlukan untuk edit
-        $statuses = ['pending', 'completed', 'failed', 'refunded']; // Daftar status yang mungkin
-        return view('admin.payments.edit', compact('payment', 'statuses'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Payment $payment)
-    {
-        $request->validate([
-            'status' => 'required|in:pending,completed,failed,refunded',
-            'notes' => 'nullable|string|max:1000',
-            'transaction_id' => 'nullable|string|max:255|unique:payments,transaction_id,' . $payment->id,
-            'method' => 'nullable|string|max:255',
-        ]);
-
-        $payment->update([
-            'status' => $request->status,
-            'notes' => $request->notes,
-            'transaction_id' => $request->transaction_id,
-            'method' => $request->method,
-            'paid_at' => ($request->status === 'completed' && !$payment->paid_at) ? now() : $payment->paid_at,
-        ]);
-
-        // Opsional: Jika status berubah menjadi 'completed', Anda mungkin ingin mengupdate status pesanan terkait
-        if ($payment->status === 'completed' && $payment->order->status === 'pending') {
-            $payment->order->update(['status' => 'processing']);
+        if ($payment->status === 'completed') {
+            return redirect()->back()->with('error', 'Pembayaran ini sudah dikonfirmasi.');
         }
 
-        return redirect()->route('admin.payments.index')->with('success', 'Pembayaran berhasil diperbarui!');
+        DB::transaction(function () use ($payment) {
+            $payment->update([
+                'status' => 'completed',
+                'paid_at' => now(),
+            ]);
+
+            // Update status pesanan terkait
+            $order = $payment->order;
+            if ($order->status === 'pending' || $order->status === 'cancelled') { // Hanya update jika statusnya masih pending atau cancelled
+                $order->update([
+                    'status' => 'processing', // Atau 'completed' jika tidak ada proses setelah pembayaran
+                    'is_paid' => true,
+                ]);
+            }
+        });
+
+        return redirect()->route('admin.payments.index')->with('success', 'Pembayaran berhasil dikonfirmasi dan status pesanan diperbarui.');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Reject the specified payment.
      */
-    public function destroy(Payment $payment)
+    public function reject(Payment $payment)
     {
-        $payment->delete();
-        return redirect()->route('admin.payments.index')->with('success', 'Pembayaran berhasil dihapus!');
+        if ($payment->status === 'failed') {
+            return redirect()->back()->with('error', 'Pembayaran ini sudah ditolak.');
+        }
+
+        DB::transaction(function () use ($payment) {
+            $payment->update([
+                'status' => 'failed',
+                'notes' => $payment->notes . "\n(Rejected by admin at " . now()->format('d M Y H:i') . ")",
+            ]);
+
+            // Opsional: Anda bisa mengubah status order menjadi 'cancelled' jika pembayaran ditolak
+            // $order = $payment->order;
+            // if ($order->status !== 'completed') {
+            //     $order->update(['status' => 'cancelled']);
+            // }
+        });
+
+        return redirect()->route('admin.payments.index')->with('success', 'Pembayaran berhasil ditolak.');
     }
+
+    // Metode update, create, store, edit, destroy tidak perlu jika admin hanya approve/reject
+    // public function update(Request $request, Payment $payment) { ... }
 }

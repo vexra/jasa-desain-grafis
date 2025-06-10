@@ -1,6 +1,6 @@
 <x-app-layout>
     <div class="flex h-screen bg-gray-100">
-        {{-- Sidebar (duplicate for simplicity, or refactor into a shared component) --}}
+        {{-- Sidebar --}}
         <div id="sidebar1" class="fixed inset-y-0 left-0 w-64 bg-gray-800 text-white p-4 space-y-4
                                   transform -translate-x-full md:relative md:translate-x-0
                                   transition-all duration-300 ease-in-out z-50 md:z-auto">
@@ -93,17 +93,6 @@
                             <div>
                                 <p class="text-gray-600 mb-2"><strong>No. Pesanan:</strong> {{ $order->order_number }}</p>
                                 <p class="text-gray-600 mb-2"><strong>Tanggal Pesan:</strong> {{ $order->created_at->format('d M Y H:i') }}</p>
-                                <p class="text-gray-600 mb-2"><strong>Status Pembayaran:</strong>
-                                    @if ($order->is_paid)
-                                        <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                            Sudah Dibayar
-                                        </span>
-                                    @else
-                                        <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                            Belum Dibayar
-                                        </span>
-                                    @endif
-                                </p>
                                 <p class="text-gray-600 mb-2"><strong>Status Pesanan:</strong>
                                     @php
                                         $statusClass = '';
@@ -125,7 +114,7 @@
                         </div>
 
                         <h4 class="text-xl font-bold mb-4">Item Pesanan:</h4>
-                        @if ($order->items->isNotEmpty()) {{-- Ganti $order->items menjadi $order->items sesuai relasi --}}
+                        @if ($order->items->isNotEmpty())
                             <div class="overflow-x-auto mb-6">
                                 <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
                                     <thead>
@@ -137,7 +126,7 @@
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200">
-                                        @foreach ($order->items as $item) {{-- Ganti $order->items menjadi $order->items --}}
+                                        @foreach ($order->items as $item)
                                             <tr>
                                                 <td class="py-4 px-6 whitespace-nowrap">{{ $item->menu->name ?? 'Menu Dihapus' }}</td>
                                                 <td class="py-4 px-6 whitespace-nowrap">{{ $item->quantity }}</td>
@@ -152,18 +141,71 @@
                             <p class="text-gray-500">Tidak ada item dalam pesanan ini.</p>
                         @endif
 
+                        <h4 class="text-xl font-bold mb-4">Informasi Pembayaran:</h4>
+                        @if ($order->payments->isNotEmpty())
+                            <div class="overflow-x-auto mb-6">
+                                <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="py-3 px-6 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Transaksi</th>
+                                            <th class="py-3 px-6 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
+                                            <th class="py-3 px-6 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metode</th>
+                                            <th class="py-3 px-6 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Pembayaran</th>
+                                            <th class="py-3 px-6 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Pembayaran</th>
+                                            <th class="py-3 px-6 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bukti</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        @foreach ($order->payments as $payment)
+                                            <tr>
+                                                <td class="py-4 px-6 whitespace-nowrap">{{ $payment->transaction_id }}</td>
+                                                <td class="py-4 px-6 whitespace-nowrap">Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
+                                                <td class="py-4 px-6 whitespace-nowrap">{{ $payment->method }}</td>
+                                                <td class="py-4 px-6 whitespace-nowrap">
+                                                    @php
+                                                        $paymentStatusClass = '';
+                                                        switch($payment->status) {
+                                                            case 'pending': $paymentStatusClass = 'bg-yellow-100 text-yellow-800'; break;
+                                                            case 'completed': $paymentStatusClass = 'bg-green-100 text-green-800'; break;
+                                                            case 'failed': $paymentStatusClass = 'bg-red-100 text-red-800'; break;
+                                                            default: $paymentStatusClass = 'bg-gray-100 text-gray-800'; break;
+                                                        }
+                                                    @endphp
+                                                    <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full {{ $paymentStatusClass }}">
+                                                        {{ ucfirst($payment->status) }}
+                                                    </span>
+                                                </td>
+                                                <td class="py-4 px-6 whitespace-nowrap">{{ $payment->paid_at ? $payment->paid_at->format('d M Y H:i') : '-' }}</td>
+                                                <td class="py-4 px-6 whitespace-nowrap">
+                                                    @if ($payment->proof_of_payment)
+                                                        <a href="{{ Storage::url($payment->proof_of_payment) }}" target="_blank" class="text-blue-600 hover:text-blue-900">Lihat Bukti</a>
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p class="text-gray-500">Belum ada pembayaran untuk pesanan ini.</p>
+                        @endif
+
+
                         <div class="flex justify-end mt-6">
                             <a href="{{ route('customer.orders.index') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
                                 Kembali ke Daftar Pesanan
                             </a>
-                            {{-- Tombol bayar hanya tampil jika status pending DAN belum dibayar --}}
-                            @if($order->status === 'pending' && !$order->is_paid)
-                                <form action="{{ route('customer.orders.markAsPaid', $order) }}" method="POST" class="ml-3">
-                                    @csrf
-                                    <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                                        Bayar Sekarang
-                                    </button>
-                                </form>
+                            {{-- Tombol bayar jika status pending DAN belum ada pembayaran pending/completed --}}
+                            @if($order->status === 'pending' && !$order->payments()->whereIn('status', ['pending', 'completed'])->exists())
+                                <a href="{{ route('customer.orders.createPayment', $order) }}" class="ml-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                    Bayar Sekarang
+                                </a>
+                            @elseif($order->status === 'pending' && $order->payments()->where('status', 'pending')->exists())
+                                <span class="ml-3 bg-yellow-500 text-white font-bold py-2 px-4 rounded opacity-75 cursor-not-allowed">
+                                    Menunggu Konfirmasi Pembayaran
+                                </span>
                             @endif
                         </div>
                     </div>

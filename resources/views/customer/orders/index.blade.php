@@ -123,9 +123,18 @@
                                                 </span>
                                             </td>
                                             <td class="py-4 px-6 whitespace-nowrap">
+                                                {{-- Check if there's a pending payment for this order --}}
+                                                @php
+                                                    $hasPendingPayment = $order->payments()->where('status', 'pending')->exists();
+                                                @endphp
+
                                                 @if ($order->is_paid)
                                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                                         Sudah Dibayar
+                                                    </span>
+                                                @elseif ($hasPendingPayment)
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                        Menunggu Konfirmasi
                                                     </span>
                                                 @else
                                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
@@ -135,12 +144,9 @@
                                             </td>
                                             <td class="py-4 px-6 whitespace-nowrap text-sm font-medium">
                                                 <a href="{{ route('customer.orders.show', $order) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Detail</a>
-                                                {{-- Tombol bayar hanya tampil jika status pending dan belum dibayar --}}
-                                                @if($order->status === 'pending' && !$order->is_paid)
-                                                    <form action="{{ route('customer.orders.markAsPaid', $order) }}" method="POST" class="inline-block">
-                                                        @csrf
-                                                        <button type="submit" class="text-green-600 hover:text-green-900 underline">Bayar Sekarang</button>
-                                                    </form>
+                                                {{-- Display "Bayar Sekarang" only if order is pending and has no pending/completed payments --}}
+                                                @if($order->status === 'pending' && !$order->is_paid && !$hasPendingPayment)
+                                                    <a href="{{ route('customer.orders.createPayment', $order) }}" class="text-green-600 hover:text-green-900 underline">Bayar Sekarang</a>
                                                 @endif
                                             </td>
                                         </tr>
