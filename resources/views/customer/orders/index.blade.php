@@ -12,11 +12,17 @@
                     </svg>
                     Dashboard
                 </a>
-                <a href="{{ route('customer.orders.index') }}" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200">
+                <a href="{{ route('customer.orders.index') }}" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200 bg-gray-700 text-white"> {{-- Menandai aktif --}}
                     <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M17 12l-2 2m-2-2l2-2m-2 2l-2-2" />
                     </svg>
                     Pesanan Saya
+                </a>
+                <a href="{{ route('customer.menus.index') }}" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200">
+                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    Daftar Menu
                 </a>
                 <a href="{{ route('profile.edit') }}" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200">
                     <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -77,6 +83,11 @@
                                 <span class="block sm:inline">{{ session('success') }}</span>
                             </div>
                         @endif
+                        @if (session('error'))
+                            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                <span class="block sm:inline">{{ session('error') }}</span>
+                            </div>
+                        @endif
 
                         <div class="overflow-x-auto">
                             <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-md">
@@ -86,6 +97,7 @@
                                         <th class="py-3 px-6 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                                         <th class="py-3 px-6 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                                         <th class="py-3 px-6 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="py-3 px-6 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Pembayaran</th>
                                         <th class="py-3 px-6 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                                     </tr>
                                 </thead>
@@ -110,17 +122,31 @@
                                                     {{ ucfirst($order->status) }}
                                                 </span>
                                             </td>
+                                            <td class="py-4 px-6 whitespace-nowrap">
+                                                @if ($order->is_paid)
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                        Sudah Dibayar
+                                                    </span>
+                                                @else
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                                        Belum Dibayar
+                                                    </span>
+                                                @endif
+                                            </td>
                                             <td class="py-4 px-6 whitespace-nowrap text-sm font-medium">
                                                 <a href="{{ route('customer.orders.show', $order) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Detail</a>
-                                                {{-- Tambahkan tombol untuk bayar jika status pending dan ada metode pembayaran --}}
-                                                @if($order->status === 'pending' && $order->payments->isEmpty())
-                                                    <a href="#" class="text-green-600 hover:text-green-900">Bayar Sekarang</a>
+                                                {{-- Tombol bayar hanya tampil jika status pending dan belum dibayar --}}
+                                                @if($order->status === 'pending' && !$order->is_paid)
+                                                    <form action="{{ route('customer.orders.markAsPaid', $order) }}" method="POST" class="inline-block">
+                                                        @csrf
+                                                        <button type="submit" class="text-green-600 hover:text-green-900 underline">Bayar Sekarang</button>
+                                                    </form>
                                                 @endif
                                             </td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="py-4 px-6 text-center text-gray-500">Anda belum memiliki pesanan.</td>
+                                            <td colspan="6" class="py-4 px-6 text-center text-gray-500">Anda belum memiliki pesanan.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>

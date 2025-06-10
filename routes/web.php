@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Customer\DashboardController as CustomerDashboardController; // Import Customer Dashboard
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController; // For customer orders
+use App\Http\Controllers\Customer\MenuController as CustomerMenuController;
 
 // Rute untuk user yang sudah login
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -29,8 +30,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('customer')->name('customer.')->group(function () {
         Route::get('/dashboard', [CustomerDashboardController::class, 'index'])->name('dashboard');
         Route::resource('orders', CustomerOrderController::class)->only(['index', 'show']); // Pelanggan bisa melihat pesanannya
-        // Tambahkan rute lain yang relevan untuk pelanggan di sini, misalnya:
-        // Route::get('/menu', [CustomerMenuController::class, 'index'])->name('menu.index');
+       
+        Route::get('/menus', [CustomerMenuController::class, 'index'])->name('menus.index'); // Daftar menu
+        Route::get('/menus/{menu}', [CustomerMenuController::class, 'show'])->name('menus.show'); // Detail menu (opsional)
+        Route::post('/menus/{menu}/order', [CustomerMenuController::class, 'orderNow'])->name('menus.orderNow');
+
+        Route::post('/orders/{order}/pay', [CustomerOrderController::class, 'markAsPaid'])->name('orders.markAsPaid');
     });
 });
 

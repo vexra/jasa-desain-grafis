@@ -21,6 +21,12 @@
                     </svg>
                     Pesanan Saya
                 </a>
+                <a href="{{ route('customer.menus.index') }}" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200">
+                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    Daftar Menu
+                </a>
                 {{-- Link ke profil pelanggan --}}
                 <a href="{{ route('profile.edit') }}" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200">
                     <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,9 +87,19 @@
                 </div>
             </header>
 
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
                 <h1 class="text-3xl font-semibold text-gray-800 mb-6">Halo, {{ Auth::user()->name }}!</h1>
                 <p class="text-gray-600 mb-8">Selamat datang di dashboard Anda. Berikut adalah ringkasan aktivitas terbaru Anda.</p>
+
+                {{-- Tombol Pintasan untuk Membuat Pesanan Baru --}}
+                <div class="mb-8">
+                    <a href="{{ route('customer.menus.index') }}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <svg class="-ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Buat Pesanan Baru Sekarang
+                    </a>
+                </div>
 
                 {{-- Ringkasan Pesanan --}}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -140,6 +156,9 @@
                                                 </td>
                                                 <td class="py-4 px-6 whitespace-nowrap text-sm font-medium">
                                                     <a href="{{ route('customer.orders.show', $order) }}" class="text-blue-600 hover:text-blue-900 mr-3">Detail</a>
+                                                    @if($order->status === 'pending' && $order->payments->isEmpty())
+                                                        <a href="#" class="text-green-600 hover:text-green-900">Bayar Sekarang</a>
+                                                    @endif
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -151,12 +170,10 @@
                             </div>
                         @else
                             <p class="text-gray-500">Anda belum memiliki pesanan. Ayo buat pesanan pertama Anda!</p>
-                            {{-- Anda bisa menambahkan link untuk membuat pesanan baru di sini --}}
                         @endif
                     </div>
                 </div>
 
-                {{-- Bagian Lain untuk Pelanggan (opsional) --}}
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900">
                         <h2 class="text-2xl font-bold mb-4">Butuh Bantuan?</h2>

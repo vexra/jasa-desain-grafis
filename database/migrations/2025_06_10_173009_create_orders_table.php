@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('order_number')->unique(); // Nomor pesanan unik (bisa auto-generated)
             $table->decimal('total_amount', 10, 2); // Total harga pesanan
             $table->string('status')->default('pending'); // Status pesanan (pending, processing, completed, cancelled)
+            $table->boolean('is_paid')->default(false);
             $table->text('notes')->nullable(); // Catatan dari pelanggan atau admin
             $table->timestamps();
         });

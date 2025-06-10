@@ -12,11 +12,17 @@
                     </svg>
                     Dashboard
                 </a>
-                <a href="{{ route('customer.orders.index') }}" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200">
+                <a href="{{ route('customer.orders.index') }}" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200 bg-gray-700 text-white"> {{-- Menandai aktif --}}
                     <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M17 12l-2 2m-2-2l2-2m-2 2l-2-2" />
                     </svg>
                     Pesanan Saya
+                </a>
+                <a href="{{ route('customer.menus.index') }}" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200">
+                    <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    Daftar Menu
                 </a>
                 <a href="{{ route('profile.edit') }}" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition duration-200">
                     <svg class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -70,12 +76,34 @@
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900">
+                        @if (session('success'))
+                            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                <span class="block sm:inline">{{ session('success') }}</span>
+                            </div>
+                        @endif
+                        @if (session('error'))
+                            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                <span class="block sm:inline">{{ session('error') }}</span>
+                            </div>
+                        @endif
+
                         <h3 class="text-2xl font-bold mb-6">Informasi Pesanan</h3>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
                                 <p class="text-gray-600 mb-2"><strong>No. Pesanan:</strong> {{ $order->order_number }}</p>
                                 <p class="text-gray-600 mb-2"><strong>Tanggal Pesan:</strong> {{ $order->created_at->format('d M Y H:i') }}</p>
+                                <p class="text-gray-600 mb-2"><strong>Status Pembayaran:</strong>
+                                    @if ($order->is_paid)
+                                        <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            Sudah Dibayar
+                                        </span>
+                                    @else
+                                        <span class="px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                            Belum Dibayar
+                                        </span>
+                                    @endif
+                                </p>
                                 <p class="text-gray-600 mb-2"><strong>Status Pesanan:</strong>
                                     @php
                                         $statusClass = '';
@@ -97,7 +125,7 @@
                         </div>
 
                         <h4 class="text-xl font-bold mb-4">Item Pesanan:</h4>
-                        @if ($order->orderItems->isNotEmpty())
+                        @if ($order->items->isNotEmpty()) {{-- Ganti $order->items menjadi $order->items sesuai relasi --}}
                             <div class="overflow-x-auto mb-6">
                                 <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
                                     <thead>
@@ -109,7 +137,7 @@
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200">
-                                        @foreach ($order->orderItems as $item)
+                                        @foreach ($order->items as $item) {{-- Ganti $order->items menjadi $order->items --}}
                                             <tr>
                                                 <td class="py-4 px-6 whitespace-nowrap">{{ $item->menu->name ?? 'Menu Dihapus' }}</td>
                                                 <td class="py-4 px-6 whitespace-nowrap">{{ $item->quantity }}</td>
@@ -128,11 +156,14 @@
                             <a href="{{ route('customer.orders.index') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
                                 Kembali ke Daftar Pesanan
                             </a>
-                            {{-- Tombol bayar jika status pending --}}
-                            @if($order->status === 'pending' && $order->payments->isEmpty())
-                                <a href="#" class="ml-3 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                                    Bayar Sekarang
-                                </a>
+                            {{-- Tombol bayar hanya tampil jika status pending DAN belum dibayar --}}
+                            @if($order->status === 'pending' && !$order->is_paid)
+                                <form action="{{ route('customer.orders.markAsPaid', $order) }}" method="POST" class="ml-3">
+                                    @csrf
+                                    <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                        Bayar Sekarang
+                                    </button>
+                                </form>
                             @endif
                         </div>
                     </div>
