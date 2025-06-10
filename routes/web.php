@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Admin\MenuController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -30,13 +31,19 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::get('/admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Rute dashboard admin
+    Route::get('/dashboard', function () {
+        return view('admin.dashboard'); // Gunakan tampilan dashboard admin Anda
+    })->name('dashboard');
+
+    // Rute CRUD untuk Menu
+    Route::resource('menus', MenuController::class);
 });
 
-Route::middleware(['auth', 'role:pelanggan'])->group(function () {
-    Route::get('/dashboard', [UserController::class, 'index'])->name('dashboard');
-});
+// Route::middleware(['auth', 'role:pelanggan'])->group(function () {
+//     Route::get('/dashboard', [UserController::class, 'index'])->name('dashboard');
+// });
 
 Route::get('/redirect-after-login', function () {
     $role = auth()->user()->role;
