@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\OrderController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -39,6 +40,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Rute CRUD untuk Menu
     Route::resource('menus', MenuController::class);
+
+    // Rute CRUD untuk Pesanan
+    Route::resource('orders', OrderController::class)->except(['create', 'store']); // Admin tidak membuat pesanan
 });
 
 // Route::middleware(['auth', 'role:pelanggan'])->group(function () {
